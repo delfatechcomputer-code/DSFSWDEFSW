@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="si" class="h-full bg-slate-100">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Universal Sticker Sheet Generator</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Inter & Noto Sans Sinhala -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Abhaya+Libre:wght@400;600;700&family=Caveat:wght@600&family=Inter:wght@400;500;600;700&family=Noto+Sans+Sinhala:wght@400;500;600;700&family=Poppins:wght@400;600;700&family=Roboto+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <style id="dynamic-print-style">
+    body {
+      font-family: 'Inter', 'Noto Sans Sinhala', sans-serif;
+    }
+
+    /* Print media query configuration - Fixes scrollbars & page overflow */
+    @media print {
+      @page {
+        size: 210mm 297mm;
+        margin: 0;
+      }
+      html, body {
+        width: 100% !important;
+        height: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: white !important;
+        overflow: hidden !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      .no-print {
+        display: none !important;
+      }
+      .print-container {
+        padding: 0 !important;
+        margin: 0 !important;
+        box-shadow: none !important;
+        background: transparent !important;
+        width: 100% !important;
+        height: 100% !important;
+        overflow: hidden !important;
+      }
+      .printable-page {
+        margin: 0 !important;
+        border: none !important;
+        box-shadow: none !important;
+        page-break-after: avoid;
+        page-break-inside: avoid;
+        overflow: hidden !important;
+      }
+      /* Hide scrollbars during printing across all browsers */
+      ::-webkit-scrollbar {
+        display: none !important;
+      }
+      * {
+        -ms-overflow-style: none !important;
+        scrollbar-width: none !important;
+      }
+    }
+
+    /* Web Preview Scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+  </style>
+</head>
+<body class="h-full text-slate-800 antialiased flex flex-col">
+
+  <!-- Header Bar (No Print) -->
+  <header class="no-print bg-slate-900 text-white border-b border-slate-800 px-4 py-3 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="bg-indigo-600 p-2 rounded-lg">
+          <i data-lucide="printer" class="w-5 h-5 text-white"></i>
+        </div>
+        <div>
+          <h1 class="font-bold text-lg leading-tight">Sticker Sheet Label Generator</h1>
+          <p class="text-xs text-slate-400">A4, A5, Letter සහ Custom ප්‍රමාණවලට Stickers මුද්‍රණය කිරීමේ මෘදුකාංගය</p>
+        </div>
+      </div>
+      <div class="flex items-center space-x-2">
+        <button id="quick-fill-btn" onclick="applyToAll(config.activeTab)" class="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-xs font-medium rounded-lg transition border border-slate-700">
+          <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+          <span>Apply Active to All</span>
+        </button>
+        <button type="button" id="main-print-btn" onclick="triggerPrint()" class="inline-flex items-center space-x-2 px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm rounded-lg shadow-md hover:shadow-lg transition cursor-pointer">
+          <i data-lucide="printer" class="w-4 h-4"></i>
+          <span>Print Labels (Ctrl + P)</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="flex-1 flex overflow-hidden">
+    <!-- Left Sidebar: Controls & Input Panel -->
+    <aside class="no-print w-full md:w-[480px] lg:w-[500px] bg-white border-r border-slate-200 flex flex-col h-[calc(100vh-61px)] shadow-lg z-10">
+      
+      <!-- Control Options Section -->
+      <div class="p-4 border-b border-slate-200 bg-slate-50 space-y-4 overflow-y-auto max-h-[50vh]">
+        
+        <!-- Tab Group: 1. Paper Size Selector -->
+        <div>
+          <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">1. Paper Size (පත්‍රයේ ප්‍රමාණය)</label>
+          <div class="grid grid-cols-5 gap-1 bg-slate-200 p-1 rounded-lg text-xs" id="paper-tabs">
+            <button onclick="setPaperSize('A4')" id="paper-btn-A4" class="py-1.5 rounded font-medium transition text-center bg-white text-indigo-700 shadow-sm">A4</button>
+            <button onclick="setPaperSize('A5')" id="paper-btn-A5" class="py-1.5 rounded font-medium transition text-center text-slate-600 hover:bg-slate-100">A5</button>
+            <button onclick="setPaperSize('Letter')" id="paper-btn-Letter" class="py-1.5 rounded font-medium transition text-center text-slate-600 hover:bg-slate-100">Letter</button>
+            <button onclick="setPaperSize('Legal')" id="paper-btn-Legal" class="py-1.5 rounded font-medium transition text-center text-slate-600 hover:bg-slate-100">Legal</button>
+            <button onclick="setPaperSize('Custom')" id="paper-btn-Custom" class="py-1.5 rounded font-medium transition text-center text-slate-600 hover:bg-slate-100">Custom</button>
+          </div>
+
+          <!-- Custom Paper Inputs -->
+          <div id="custom-paper-inputs" class="hidden grid grid-cols-2 gap-2 mt-2">
+            <div>
+              <span class="text-[11px] text-slate-500">Width (mm):</span>
+              <input type="number" id="custom-w" value="210" oninput="updateCustomPaperSize()" class="w-full text-xs p-1.5 border rounded">
+            </div>
+            <div>
+              <span class="text-[11px] text-slate-500">Height (mm):</span>
+              <input type="number" id="custom-h" value="297" oninput="updateCustomPaperSize()" class="w-full text-xs p-1.5 border rounded">
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab Group: 2. Grid Layout & Presets -->
+        <div>
+          <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">2. Grid Presets & Divisions</label>
+          <div class="flex flex-wrap gap-1.5 mb-2">
+            <button onclick="setCustomLabelMM(120, 60)" class="px-2.5 py-1 text-xs bg-indigo-600 text-white font-semibold rounded hover:bg-indigo-700 shadow-sm">120mm × 60mm Preset</button>
+            <button onclick="setPresetGrid(2, 4)" class="px-2.5 py-1 text-xs bg-indigo-50 border border-indigo-300 text-indigo-700 font-semibold rounded hover:bg-indigo-100">8 Labels (2x4 / A8)</button>
+            <button onclick="setPresetGrid(2, 3)" class="px-2.5 py-1 text-xs bg-white border border-slate-300 rounded hover:bg-indigo-50 hover:border-indigo-300">6 Labels (2x3 - 2.5"x5")</button>
+            <button onclick="setPresetGrid(2, 2)" class="px-2.5 py-1 text-xs bg-white border border-slate-300 rounded hover:bg-indigo-50 hover:border-indigo-300">4 Labels (2x2)</button>
+            <button onclick="setPresetGrid(2, 5)" class="px-2.5 py-1 text-xs bg-white border border-slate-300 rounded hover:bg-indigo-50 hover:border-indigo-300">10 Labels (2x5)</button>
+            <button onclick="setPresetGrid(3, 4)" class="px-2.5 py-1 text-xs bg-white border border-slate-300 rounded hover:bg-indigo-50 hover:border-indigo-300">12 Labels (3x4)</button>
+            <button onclick="setPresetGrid(4, 4)" class="px-2.5 py-1 text-xs bg-white border border-slate-300 rounded hover:bg-indigo-50 hover:border-indigo-300">16 Labels (4x4)</button>
+          </div>
+
+          <!-- Custom Cols and Rows -->
+          <div class="grid grid-cols-2 gap-2 bg-white p-2 border border-slate-200 rounded-lg">
+            <div class="flex items-center space-x-2">
+              <span class="text-xs font-medium text-slate-600">Cols (තිරස්):</span>
+              <input type="number" id="grid-cols" min="1" max="10" value="2" onchange="updateGridFromInput()" class="w-14 text-xs p-1 border rounded text-center">
+            </div>
+            <div class="flex items-center space-x-2">
+              <span class="text-xs font-medium text-slate-600">Rows (සිරස්):</span>
+              <input type="number" id="grid-rows" min="1" max="15" value="4" onchange="updateGridFromInput()" class="w-14 text-xs p-1 border rounded text-center">
+            </div>
+          </div>
+          <!-- Label Size Summary Banner -->
+          <div class="mt-2 text-[11px] text-indigo-700 bg-indigo-50 border border-indigo-100 rounded px-2.5 py-1.5 flex justify-between items-center">
+            <span>එක් Sticker එකක ප්‍රමාණය:</span>
+            <span id="label-size-calc" class="font-bold">--</span>
+          </div>
+        </div>
+
+        <!-- Global Layout & Styling -->
+        <div>
+          <h2 class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">3. Formatting & Guides</h2>
+          
+          <!-- Logo Upload Section -->
+          <div class="mb-3 p-2 bg-indigo-50 border border-indigo-100 rounded-lg">
+            <label class="block text-xs font-bold text-indigo-900 mb-1 flex items-center justify-between">
+              <span>Logo Image (මාතෘකාවට උඩින් Logo එක)</span>
+              <button id="remove-logo-btn" onclick="removeLogo()" class="hidden text-[10px] text-rose-600 font-normal hover:underline">Remove Logo</button>
+            </label>
+            <input type="file" id="logo-input" accept="image/*" onchange="handleLogoUpload(event)" class="w-full text-xs text-slate-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-700 cursor-pointer mb-2">
+            
+            <div id="logo-options" class="hidden grid grid-cols-2 gap-2 pt-1 border-t border-indigo-100">
+              <div>
+                <label class="block text-[10px] text-indigo-800 font-medium mb-0.5">Logo Height</label>
+                <select id="logo-size" onchange="setStyle('logoHeight', this.value)" class="w-full text-xs p-1 bg-white border border-indigo-200 rounded">
+                  <option value="h-6">Small (24px)</option>
+                  <option value="h-8" selected>Medium (32px)</option>
+                  <option value="h-12">Large (48px)</option>
+                  <option value="h-16">X-Large (64px)</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-[10px] text-indigo-800 font-medium mb-0.5">Logo Align</label>
+                <select id="logo-align" onchange="setStyle('logoAlign', this.value)" class="w-full text-xs p-1 bg-white border border-indigo-200 rounded">
+                  <option value="justify-center" selected>Center</option>
+                  <option value="justify-start">Left</option>
+                  <option value="justify-end">Right</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2">
+            <!-- Text Alignment -->
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Text Alignment</label>
+              <div class="flex bg-white rounded-lg p-1 border border-slate-200">
+                <button onclick="setStyle('textAlign', 'left')" id="btn-align-left" class="style-align-btn flex-1 py-1 flex justify-center items-center rounded text-slate-600 hover:bg-slate-100">
+                  <i data-lucide="align-left" class="w-4 h-4"></i>
+                </button>
+                <button onclick="setStyle('textAlign', 'center')" id="btn-align-center" class="style-align-btn flex-1 py-1 flex justify-center items-center rounded bg-indigo-50 text-indigo-600 font-bold">
+                  <i data-lucide="align-center" class="w-4 h-4"></i>
+                </button>
+                <button onclick="setStyle('textAlign', 'right')" id="btn-align-right" class="style-align-btn flex-1 py-1 flex justify-center items-center rounded text-slate-600 hover:bg-slate-100">
+                  <i data-lucide="align-right" class="w-4 h-4"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Border Visibility -->
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Border Guide</label>
+              <button onclick="toggleBorders()" id="btn-toggle-border" class="w-full py-1.5 px-3 bg-white border border-slate-200 rounded-lg text-xs font-medium text-slate-700 flex items-center justify-between hover:bg-slate-100">
+                <span id="border-status-text">Show Border</span>
+                <i data-lucide="square" id="border-icon" class="w-4 h-4 text-slate-500"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Typography Sizes -->
+        <div class="space-y-3 pt-2 border-t border-slate-200">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Font Model (අකුරු විලාසය)</label>
+            <select id="font-family-select" onchange="setStyle('fontFamily', this.value)" class="w-full text-xs p-1.5 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium">
+              <option value="'Inter', 'Noto Sans Sinhala', sans-serif" selected>Standard (Inter / Noto Sans)</option>
+              <option value="'Abhaya Libre', serif">Classic Sinhala (Abhaya Libre)</option>
+              <option value="'Poppins', sans-serif">Modern Clean (Poppins)</option>
+              <option value="'Roboto Mono', monospace">Digital / Monospace (Roboto Mono)</option>
+              <option value="'Caveat', cursive">Handwritten Style (Caveat)</option>
+            </select>
+          </div>
+
+          <div class="grid grid-cols-3 gap-2">
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Title (px)</label>
+              <input type="number" id="title-size" value="16" min="8" max="40" oninput="setStyle('titleSizePx', this.value)" class="w-full text-xs p-1.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-center">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Details (px)</label>
+              <input type="number" id="details-size" value="11" min="6" max="30" oninput="setStyle('detailsSizePx', this.value)" class="w-full text-xs p-1.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-center">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Footer (px)</label>
+              <input type="number" id="footer-size" value="10" min="6" max="24" oninput="setStyle('footerSizePx', this.value)" class="w-full text-xs p-1.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-center">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sticker Selector Tabs -->
+      <div class="border-b border-slate-200 bg-slate-100 px-3 py-2 flex items-center justify-between">
+        <span class="text-xs font-semibold text-slate-600">Select Sticker to Edit:</span>
+        <div class="flex flex-wrap gap-1 max-w-[280px] overflow-x-auto max-h-16 py-0.5" id="tab-buttons">
+          <!-- Populated dynamically via JS -->
+        </div>
+      </div>
+
+      <!-- Edit Form -->
+      <div class="flex-1 overflow-y-auto p-4 space-y-4">
+        <div class="flex items-center justify-between">
+          <span class="text-sm font-bold text-slate-700" id="current-editing-label">Editing Label #1</span>
+          <button onclick="copyCurrentToAll()" class="text-xs text-indigo-600 hover:text-indigo-800 font-medium flex items-center space-x-1">
+            <i data-lucide="copy-plus" class="w-3.5 h-3.5"></i>
+            <span>Copy this to ALL labels</span>
+          </button>
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-slate-700 mb-1">Title (මාතෘකාව)</label>
+          <input type="text" id="input-title" oninput="updateCurrentLabel()" placeholder="e.g. Organic Herbal Soap" class="w-full text-sm px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-slate-700 mb-1">Details / Subtitle (විස්තරය)</label>
+          <textarea id="input-details" oninput="updateCurrentLabel()" rows="3" placeholder="e.g. Ingredients: Coconut Oil, Aloe Vera&#10;Net Weight: 100g&#10;Exp Date: 12/2026" class="w-full text-sm px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-slate-700 mb-1">Footer Code / Badge</label>
+            <input type="text" id="input-code" oninput="updateCurrentLabel()" placeholder="e.g. BATCH-001" class="w-full text-sm px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-700 mb-1">Price / Highlight (මිල)</label>
+            <input type="text" id="input-price" oninput="updateCurrentLabel()" placeholder="e.g. Rs. 450.00" class="w-full text-sm px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+          </div>
+        </div>
+
+        <div class="pt-4 border-t border-slate-200 flex justify-between items-center">
+          <button onclick="clearCurrentLabel()" class="px-3 py-1.5 text-xs text-rose-600 hover:bg-rose-50 border border-rose-200 rounded-lg transition flex items-center space-x-1">
+            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+            <span>Clear Current Label</span>
+          </button>
+          <button onclick="clearAllLabels()" class="px-3 py-1.5 text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition">
+            Clear All Labels
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Right Side: Interactive Live Sheet Preview -->
+    <section class="print-container flex-1 bg-slate-200 overflow-auto p-4 md:p-8 flex justify-center items-start">
+      <!-- Printable Page Container -->
+      <div id="printable-sheet" class="printable-page bg-white shadow-2xl rounded-sm p-[4mm] gap-0 border border-slate-300 relative transition-all box-border overflow-hidden">
+        <!-- Labels will be dynamically generated here -->
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // Standard dimensions dictionary (mm)
+    const paperSizes = {
+      'A4': { width: 210, height: 297 },
+      'A5': { width: 148, height: 210 },
+      'Letter': { width: 215.9, height: 279.4 },
+      'Legal': { width: 215.9, height: 355.6 },
+      'Custom': { width: 210, height: 297 }
+    };
+
+    // Configuration & State
+    const config = {
+      paperType: 'A4',
+      widthMM: 210,
+      heightMM: 297,
+      cols: 2,
+      rows: 4,
+      activeTab: 0,
+      textAlign: 'center',
+      showBorder: true,
+      fontFamily: "'Inter', 'Noto Sans Sinhala', sans-serif",
+      titleSizePx: 16,
+      detailsSizePx: 11,
+      footerSizePx: 10,
+      logoUrl: '',
+      logoHeight: 'h-8',
+      logoAlign: 'justify-center'
+    };
+
+    // Array of sticker contents
+    let labelsData = [];
+
+    // Initialize Application
+    window.onload = function () {
+      lucide.createIcons();
+      initLabelsData(config.cols * config.rows);
+      updatePaperStyleCSS();
+      renderTabs();
+      renderSheet();
+      loadActiveLabelToForm();
+    };
+
+    // Keyboard shortcut for Print
+    window.addEventListener('keydown', function (e) {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
+        e.preventDefault();
+        triggerPrint();
+      }
+    });
+
+    function initLabelsData(total) {
+      const oldData = [...labelsData];
+      labelsData = Array.from({ length: total }, (_, i) => {
+        if (oldData[i]) return oldData[i];
+        return {
+          title: i === 0 ? "සමනල ලංකා නිෂ්පාදන" : `Label Title #${i + 1}`,
+          details: i === 0 ? "උසස් තත්ත්වයේ ස්වාභාවික සබන්\nතොග සහ සිල්ලරට ලබාගත හැක.\nදුරකථන: 077 123 4567" : "Add details or descriptions here.\nLine breaks are supported.",
+          code: `CODE-${100 + i}`,
+          price: "Rs. 350.00"
+        };
+      });
+      if (config.activeTab >= total) {
+        config.activeTab = 0;
+      }
+    }
+
+    function setPaperSize(type) {
+      config.paperType = type;
+      
+      Object.keys(paperSizes).forEach(p => {
+        const btn = document.getElementById(`paper-btn-${p}`);
+        if (btn) {
+          if (p === type) {
+            btn.className = "py-1.5 rounded font-medium transition text-center bg-white text-indigo-700 shadow-sm";
+          } else {
+            btn.className = "py-1.5 rounded font-medium transition text-center text-slate-600 hover:bg-slate-100";
+          }
+        }
+      });
+
+      const customContainer = document.getElementById('custom-paper-inputs');
+      if (type === 'Custom') {
+        customContainer.classList.remove('hidden');
+        config.widthMM = parseFloat(document.getElementById('custom-w').value) || 210;
+        config.heightMM = parseFloat(document.getElementById('custom-h').value) || 297;
+      } else {
+        customContainer.classList.add('hidden');
+        config.widthMM = paperSizes[type].width;
+        config.heightMM = paperSizes[type].height;
+      }
+
+      updatePaperStyleCSS();
+      renderSheet();
+    }
+
+    function updateCustomPaperSize() {
+      config.widthMM = parseFloat(document.getElementById('custom-w').value) || 210;
+      config.heightMM = parseFloat(document.getElementById('custom-h').value) || 297;
+      updatePaperStyleCSS();
+      renderSheet();
+    }
+
+    function setPresetGrid(cols, rows) {
+      config.cols = cols;
+      config.rows = rows;
+      document.getElementById('grid-cols').value = cols;
+      document.getElementById('grid-rows').value = rows;
+      initLabelsData(cols * rows);
+      renderTabs();
+      updatePaperStyleCSS();
+      renderSheet();
+      loadActiveLabelToForm();
+    }
+
+    function updateGridFromInput() {
+      const c = parseInt(document.getElementById('grid-cols').value) || 1;
+      const r = parseInt(document.getElementById('grid-rows').value) || 1;
+      config.cols = Math.max(1, Math.min(10, c));
+      config.rows = Math.max(1, Math.min(15, r));
+      initLabelsData(config.cols * config.rows);
+      renderTabs();
+      updatePaperStyleCSS();
+      renderSheet();
+      loadActiveLabelToForm();
+    }
+
+    function updatePaperStyleCSS() {
+      const styleTag = document.getElementById('dynamic-print-style');
+      styleTag.innerHTML = `
+        body {
+          font-family: 'Inter', 'Noto Sans Sinhala', sans-serif;
+        }
+
+        .printable-page {
+          width: ${config.widthMM}mm;
+          height: ${config.heightMM}mm;
+        }
+
+        @media print {
+          @page {
+            size: ${config.widthMM}mm ${config.heightMM}mm;
+            margin: 0;
+          }
+          html, body {
+            width: 100% !important;
+            height: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            background: white !important;
+            overflow: hidden !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+          .no-print {
+            display: none !important;
+          }
+          .print-container {
+            padding: 0 !important;
+            margin: 0 !important;
+            box-shadow: none !important;
+            background: transparent !important;
+            width: 100% !important;
+            height: 100% !important;
+            overflow: hidden !important;
+          }
+          .printable-page {
+            margin: 0 !important;
+            border: none !important;
+            box-shadow: none !important;
+            page-break-after: avoid;
+            page-break-inside: avoid;
+            overflow: hidden !important;
+          }
+          ::-webkit-scrollbar {
+            display: none !important;
+          }
+          * {
+            -ms-overflow-style: none !important;
+            scrollbar-width: none !important;
+          }
+        }
+      `;
+
+      const usableW = config.widthMM - 8;
+      const usableH = config.heightMM - 8;
+      const singleW = (usableW / config.cols).toFixed(1);
+      const singleH = (usableH / config.rows).toFixed(1);
+      const singleWInches = (singleW / 25.4).toFixed(2);
+      const singleHInches = (singleH / 25.4).toFixed(2);
+
+      document.getElementById('label-size-calc').innerText = `${singleW}mm × ${singleH}mm (${singleWInches}" × ${singleHInches}")`;
+    }
+
+    function setCustomLabelMM(targetWidthMM, targetHeightMM) {
+      const cols = Math.max(1, Math.floor((config.widthMM - 8) / targetWidthMM));
+      const rows = Math.max(1, Math.floor((config.heightMM - 8) / targetHeightMM));
+      
+      config.cols = cols;
+      config.rows = rows;
+      document.getElementById('grid-cols').value = cols;
+      document.getElementById('grid-rows').value = rows;
+      
+      initLabelsData(cols * rows);
+      renderTabs();
+      updatePaperStyleCSS();
+      renderSheet();
+      loadActiveLabelToForm();
+    }
+
+    function triggerPrint() {
+      try {
+        window.print();
+      } catch (e) {
+        alert("Print error: Press Ctrl + P to trigger print.");
+      }
+    }
+
+    function renderTabs() {
+      const container = document.getElementById('tab-buttons');
+      container.innerHTML = '';
+      const total = config.cols * config.rows;
+      for (let i = 0; i < total; i++) {
+        const btn = document.createElement('button');
+        btn.className = `w-6 h-6 text-[11px] font-semibold rounded flex items-center justify-center transition ${
+          config.activeTab === i
+            ? 'bg-indigo-600 text-white shadow-sm'
+            : 'bg-white text-slate-600 hover:bg-slate-200 border border-slate-300'
+        }`;
+        btn.innerText = i + 1;
+        btn.onclick = () => switchTab(i);
+        container.appendChild(btn);
+      }
+    }
+
+    function switchTab(index) {
+      config.activeTab = index;
+      renderTabs();
+      loadActiveLabelToForm();
+      highlightActiveLabelOnSheet();
+    }
+
+    function loadActiveLabelToForm() {
+      const data = labelsData[config.activeTab] || { title: '', details: '', code: '', price: '' };
+      document.getElementById('current-editing-label').innerText = `Editing Label #${config.activeTab + 1}`;
+      document.getElementById('input-title').value = data.title;
+      document.getElementById('input-details').value = data.details;
+      document.getElementById('input-code').value = data.code;
+      document.getElementById('input-price').value = data.price;
+    }
+
+    function updateCurrentLabel() {
+      const index = config.activeTab;
+      labelsData[index] = {
+        title: document.getElementById('input-title').value,
+        details: document.getElementById('input-details').value,
+        code: document.getElementById('input-code').value,
+        price: document.getElementById('input-price').value
+      };
+      renderSheet();
+    }
+
+    function applyToAll(sourceIndex = config.activeTab) {
+      const source = { ...labelsData[sourceIndex] };
+      const total = config.cols * config.rows;
+      for (let i = 0; i < total; i++) {
+        labelsData[i] = { ...source };
+      }
+      loadActiveLabelToForm();
+      renderSheet();
+    }
+
+    function copyCurrentToAll() {
+      applyToAll(config.activeTab);
+    }
+
+    function clearCurrentLabel() {
+      labelsData[config.activeTab] = { title: '', details: '', code: '', price: '' };
+      loadActiveLabelToForm();
+      renderSheet();
+    }
+
+    function clearAllLabels() {
+      const total = config.cols * config.rows;
+      for (let i = 0; i < total; i++) {
+        labelsData[i] = { title: '', details: '', code: '', price: '' };
+      }
+      loadActiveLabelToForm();
+      renderSheet();
+    }
+
+    function setStyle(key, value) {
+      config[key] = value;
+      if (key === 'textAlign') {
+        ['left', 'center', 'right'].forEach(align => {
+          const btn = document.getElementById(`btn-align-${align}`);
+          if (align === value) {
+            btn.className = 'style-align-btn flex-1 py-1 flex justify-center items-center rounded bg-indigo-50 text-indigo-600 font-bold';
+          } else {
+            btn.className = 'style-align-btn flex-1 py-1 flex justify-center items-center rounded text-slate-600 hover:bg-slate-100';
+          }
+        });
+      }
+      renderSheet();
+    }
+
+    function toggleBorders() {
+      config.showBorder = !config.showBorder;
+      const statusText = document.getElementById('border-status-text');
+      const borderBtn = document.getElementById('btn-toggle-border');
+      
+      if (config.showBorder) {
+        statusText.innerText = 'Show Border';
+        borderBtn.className = 'w-full py-1.5 px-3 bg-white border border-slate-200 rounded-lg text-xs font-medium text-slate-700 flex items-center justify-between hover:bg-slate-100';
+      } else {
+        statusText.innerText = 'Hide Border';
+        borderBtn.className = 'w-full py-1.5 px-3 bg-indigo-50 border border-indigo-200 rounded-lg text-xs font-medium text-indigo-700 flex items-center justify-between hover:bg-indigo-100';
+      }
+      renderSheet();
+    }
+
+    function handleLogoUpload(event) {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          config.logoUrl = e.target.result;
+          document.getElementById('logo-options').classList.remove('hidden');
+          document.getElementById('remove-logo-btn').classList.remove('hidden');
+          renderSheet();
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+
+    function removeLogo() {
+      config.logoUrl = '';
+      document.getElementById('logo-input').value = '';
+      document.getElementById('logo-options').classList.add('hidden');
+      document.getElementById('remove-logo-btn').classList.add('hidden');
+      renderSheet();
+    }
+
+    function highlightActiveLabelOnSheet() {
+      const cells = document.querySelectorAll('.sticker-cell');
+      cells.forEach((cell, idx) => {
+        if (idx === config.activeTab) {
+          cell.classList.add('ring-2', 'ring-indigo-500', 'ring-offset-1');
+        } else {
+          cell.classList.remove('ring-2', 'ring-indigo-500', 'ring-offset-1');
+        }
+      });
+    }
+
+    function renderSheet() {
+      const page = document.getElementById('printable-sheet');
+      const total = config.cols * config.rows;
+
+      // Dynamic Grid styles
+      page.style.display = 'grid';
+      page.style.gridTemplateColumns = `repeat(${config.cols}, 1fr)`;
+      page.style.gridTemplateRows = `repeat(${config.rows}, 1fr)`;
+
+      page.innerHTML = '';
+
+      for (let i = 0; i < total; i++) {
+        const data = labelsData[i] || { title: '', details: '', code: '', price: '' };
+        const cell = document.createElement('div');
+
+        // Border guide configuration
+        const borderClass = config.showBorder
+          ? 'border border-dashed border-slate-300'
+          : 'border border-transparent';
+
+        const activeClass = i === config.activeTab ? 'ring-2 ring-indigo-500 ring-offset-1' : '';
+
+        cell.className = `sticker-cell p-2 flex flex-col justify-between overflow-hidden bg-white cursor-pointer transition-all ${borderClass} ${activeClass}`;
+        cell.style.textAlign = config.textAlign;
+        cell.style.fontFamily = config.fontFamily;
+        cell.onclick = () => switchTab(i);
+
+        // Logo HTML if available
+        let logoHtml = '';
+        if (config.logoUrl) {
+          logoHtml = `
+            <div class="flex ${config.logoAlign} mb-1">
+              <img src="${config.logoUrl}" class="${config.logoHeight} object-contain max-w-full" alt="Logo" />
+            </div>
+          `;
+        }
+
+        cell.innerHTML = `
+          <div class="flex-1 flex flex-col overflow-hidden">
+            ${logoHtml}
+            ${data.title ? `<h3 class="font-bold text-slate-900 leading-snug break-words mb-1" style="font-size: ${config.titleSizePx}px">${escapeHtml(data.title)}</h3>` : ''}
+            ${data.details ? `<div class="whitespace-pre-line text-slate-700 leading-normal overflow-hidden flex-1" style="font-size: ${config.detailsSizePx}px">${escapeHtml(data.details)}</div>` : ''}
+          </div>
+          ${(data.code || data.price) ? `
+            <div class="pt-1 mt-1 border-t border-slate-200 flex justify-between items-center text-slate-600 font-medium" style="font-size: ${config.footerSizePx}px">
+              <span>${escapeHtml(data.code || '')}</span>
+              <span class="font-bold text-slate-900">${escapeHtml(data.price || '')}</span>
+            </div>
+          ` : ''}
+        `;
+
+        page.appendChild(cell);
+      }
+
+      // Re-initialize Lucide Icons if any
+      if (window.lucide) {
+        lucide.createIcons();
+      }
+    }
+
+    function escapeHtml(text) {
+      if (!text) return '';
+      return text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+  </script>
+</body>
+</html>
